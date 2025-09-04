@@ -95,7 +95,7 @@ CWT{Continuous db2, Father Wavelet, Q=8.0, β=2.0,aveLen=0.0, frame=1.0, norm=In
 julia> res = circshift(cwt(exs, c), (0, 1, 0))
 ┌ Warning: the highest frequency wavelet has more than 1% its max at the end, so it may not be analytic. Think carefully
 │   highAprxAnalyt = 0.26753
-└ @ ContinuousWavelets ~/work/ContinuousWavelets.jl/ContinuousWavelets.jl/src/sanityChecks.jl:10
+└ @ ContinuousWavelets ~/work/ContinuousWavelets.jl/ContinuousWavelets.jl/src/sanityChecks.jl:12
 2047×32×4 Array{Float64, 3}:
 [:, :, 1] =
  1.88768e-5  0.000266059  …  4.67422e-5   3.00171e-6
