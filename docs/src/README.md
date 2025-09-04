@@ -114,7 +114,7 @@ julia> c = wavelet(cDb2, β=2, extraOctaves=-0);
 julia> res = circshift(cwt(exs, c), (0, 1, 0))
 ┌ Warning: the highest frequency wavelet has more than 1% its max at the end, so it may not be analytic. Think carefully
 │   highAprxAnalyt = 0.26753
-└ @ ContinuousWavelets ~/work/ContinuousWavelets.jl/ContinuousWavelets.jl/src/sanityChecks.jl:10
+└ @ ContinuousWavelets ~/work/ContinuousWavelets.jl/ContinuousWavelets.jl/src/sanityChecks.jl:12
 2047×32×4 Array{Float64, 3}:
 [:, :, 1] =
  1.88768e-5  0.000266059  …  4.67422e-5   3.00171e-6
@@ -133,7 +133,7 @@ julia> res = circshift(cwt(exs, c), (0, 1, 0))
 [:, :, 3] =
  -4.25348e-7  0.00596895  …  4.4713e-8   1.86785e-8
  -4.37683e-7  0.00596787     3.30062e-8  7.83973e-9
-  ⋮                       ⋱  ⋮│
+  ⋮                       ⋱  ⋮
  -9.36725e-8  0.00339937  …  7.99443e-9  4.79906e-9
  -9.31697e-8  0.00340624     8.3032e-9   4.25503e-9
 
