@@ -187,8 +187,18 @@ p10 = plot(mapTo(cBatt4, true, 1024-k:1024+k; d = 1, averagingLength = -1)[:, 2]
     title = "Battle-Lemarie, 4",
     legend = false,
     ticks = nothing,
+    linewidth = 5)
+p11 = plot(mapTo(cBatt4, true, 1024-k:1024+k; d = 1, averagingLength = -1)[:, 2],
+    title = "Battle-Lemarie, 4",
+    legend = false,
+    ticks = nothing,
+    linewidth = 5)
+p12 = plot(mapTo(cBatt4, true, 1024-k:1024+k; d = 1, averagingLength = -1)[:, 2],
+    title = "Battle-Lemarie, 4",
+    legend = false,
+    ticks = nothing,
     linewidth = 5);
-plot(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, layout = (2, 5), size = 300 .* (5, 2.2))
+plot(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, layout = (3, 4), size = 300 .* (5, 2.2))
 savefig("mothers.svg")#hide
 2047 / 2
 
