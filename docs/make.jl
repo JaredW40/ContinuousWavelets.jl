@@ -20,4 +20,4 @@ makedocs(sitename = "ContinuousWavelets.jl",
         ]
     ])
 
-deploydocs(repo = "github.com/dsweber2/ContinuousWavelets.jl.git")
+deploydocs(repo = "github.com/jwhite40/ContinuousWavelets.jl.git")
