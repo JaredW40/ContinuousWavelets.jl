@@ -123,7 +123,7 @@ gr();
 Plots.reset_defaults()
 global_logger(Logging.SimpleLogger(stderr, Logging.Error))
 n = 2047;
-function mapTo(waveType, isReal = true, window = 1:2047; d = 1, γ = 4.0, β = 2.0, cf = 1.0, kwargs...)
+function mapTo(waveType, isReal = true, window = 1:2047; d = 1, γ = 2.0, β = 4.0, cf = 1.0, kwargs...)
     if waveType == Morse
         morse_wav = Morse(float(γ), float(β), float(cf))
         c = wavelet(morse_wav; kwargs...)
@@ -150,15 +150,15 @@ p2 = plot([real.(tmp) imag.(tmp)],
     	labels = ["real" "imaginary"],
     	ticks = nothing,
     	linewidth = 5)
-tmpMorse1 = mapTo(Morse, false; β=3, γ=10.0, cf=1.0, averagingLength=-1)[:, 2]
+tmpMorse1 = mapTo(Morse, false; γ=3.0, β=10.0, cf=1.0, averagingLength=-1)[:, 2]
 p3 = plot([real.(tmpMorse1) imag.(tmpMorse1)],
-    	title = "Morse (β=3, γ=10)",
+    	title = "Morse (γ=3, β=10)",
     	labels = ["real" "imaginary"],
     	ticks = nothing,
     	linewidth = 4)
-tmpMorse2 = mapTo(Morse, false; β=1, γ=3.0, cf=1.0, averagingLength=-2)[:, 2] 
+tmpMorse2 = mapTo(Morse, false; γ=1.0, β=3.0, cf=1.0, averagingLength=-2)[:, 2] 
 p4 = plot([real.(tmpMorse2) imag.(tmpMorse2)],
-    	title = "Morse (β=1, γ=3)",
+    	title = "Morse (γ=1, β=3)",
     	labels = ["real" "imaginary"],
     	ticks = nothing,
     	linewidth = 4)

@@ -10,7 +10,7 @@ using ContinuousWavelets, Plots, Wavelets, FFTW, Logging
 using Plots; gr()
 Plots.reset_defaults()
 n= 2047;
-function mapTo(waveType, isReal = true, window = 1:2047; d = 1, γ = 4.0, β = 2.0, cf = 1.0, kwargs...)
+function mapTo(waveType, isReal = true, window = 1:2047; d = 1, γ = 2.0, β = 4.0, cf = 1.0, kwargs...)
     if waveType == Morse
         morse_wav = Morse(float(γ), float(β), float(cf))
         c = wavelet(morse_wav; kwargs...)
@@ -29,10 +29,10 @@ tmp = mapTo(Morlet(π), false; averagingLength = -0.2)[:, 2]
 p1 = plot([real.(tmp) imag.(tmp)], title = "Morlet", labels = ["real" "imaginary"], ticks = nothing, linewidth = 5)
 tmp = mapTo(paul2, false, averagingLength = -0.5)[:, 2]
 p2 = plot([real.(tmp) imag.(tmp)], title = "Paul 2", labels = ["real" "imaginary"], ticks = nothing, linewidth = 5)
-tmpMorse1 = mapTo(Morse, false; β=3, γ=10.0, cf=1.0, averagingLength=-1)[:, 2]
-p3 = plot([real.(tmpMorse1) imag.(tmpMorse1)], title = "Morse (β=3, γ=10)", labels = ["real" "imaginary"], ticks = nothing, linewidth = 4)
-tmpMorse2 = mapTo(Morse, false; β=1, γ=3.0, cf=1.0, averagingLength=-2)[:, 2] 
-p4 = plot([real.(tmpMorse2) imag.(tmpMorse2)], title = "Morse (β=1, γ=3)", labels = ["real" "imaginary"], ticks = nothing, linewidth = 4)
+tmpMorse1 = mapTo(Morse, false; γ=3.0, β=10.0, cf=1.0, averagingLength=-1)[:, 2]
+p3 = plot([real.(tmpMorse1) imag.(tmpMorse1)], title = "Morse (γ=3, β=10)", labels = ["real" "imaginary"], ticks = nothing, linewidth = 4)
+tmpMorse2 = mapTo(Morse, false; γ=1.0, β=3.0, cf=1.0, averagingLength=-2)[:, 2] 
+p4 = plot([real.(tmpMorse2) imag.(tmpMorse2)], title = "Morse (γ=1, β=3)", labels = ["real" "imaginary"], ticks = nothing, linewidth = 4)
 p5 = plot(mapTo(dog2; averagingLength = -1.5)[:, 2], title = "derivative of gaussians (dog2)", legend = false, ticks = nothing, linewidth = 5)
 p6 = plot(mapTo(cHaar, true; averagingLength = 1)[:, 2], title = "Haar", legend = false, ticks = nothing, linewidth = 5)
 p7 = plot(mapTo(cBeyl, true; d = 1, averagingLength = -0)[:, 2], title = "Beylkyin", legend = false, ticks = nothing, linewidth = 5)
