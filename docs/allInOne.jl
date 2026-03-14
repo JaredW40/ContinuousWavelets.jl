@@ -123,9 +123,9 @@ gr();
 Plots.reset_defaults()
 global_logger(Logging.SimpleLogger(stderr, Logging.Error))
 n = 2047;
-function mapTo(waveType, isReal = true, window = 1:2047; d = 1, β = 4.0, γ = 2.0, cf = 1.0, kwargs...)
+function mapTo(waveType, isReal = true, window = 1:2047; d = 1, γ = 2.0, β = 4.0, cf = 1.0, kwargs...)
     if waveType == Morse
-        morse_wav = Morse(float(γ), float(β), float(cf))
+        morse_wav = Morse(float(β), float(γ), float(cf))
         c = wavelet(morse_wav; kwargs...)
     else
         c = wavelet(waveType; β=d, kwargs...)
