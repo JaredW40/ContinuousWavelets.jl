@@ -49,8 +49,18 @@
         @test size(Ŵ, 2) > 1 || ave > 0
         # make sure that the highest frequency support is small relative to the space domain
         # Guaranteed in a very different way for ContOrtho, no guarantees made for just averaging, and the averaging length needs to leave 6.5 octaves
-        if !(wave isa ContOrtho) && size(Ŵ, 2) > 1 && log2(n) - ave > 6.5
-            @test max(abs.(Ŵ[end, :])...) / norm(supported, Inf) ≤ 1e-1
+        #if !(wave isa ContOrtho) && size(Ŵ, 2) > 1 && log2(n) - ave > 6.5
+            #@test max(abs.(Ŵ[end, :])...) / norm(supported, Inf) ≤ 1e-1
+        #end
+
+        # make sure that the highest frequency support is small relative to the space domain
+        # Guaranteed in a very different way for ContOrtho, no guarantees made for just averaging,
+        # and the averaging length needs to leave 6.5 octaves.
+        # The Morse wavelet with γ < 3 has sub-Gaussian spectral decay and cannot be guaranteed
+        # to vanish at Nyquist, similar to the Paul wavelet.
+        if !(wave isa ContOrtho) && size(Ŵ, 2) > 1 && log2(n) - ave > 6.5 &&
+                !(wave isa Paul) && !(wave isa Morse && wave.ga < 3)
+            @test max(abs.(Ŵ[end, :])...) / norm(supported, Inf) ≤ 1e-1
         end
 
         # check that the father wavelet is actually positive
