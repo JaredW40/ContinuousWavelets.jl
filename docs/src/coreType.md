@@ -31,7 +31,7 @@ tmp = mapTo(paul2, false, averagingLength = -0.5)[:, 2]
 p2 = plot([real.(tmp) imag.(tmp)], title = "Paul 2", labels = ["real" "imaginary"], ticks = nothing, linewidth = 5)
 tmpMorse1 = mapTo(Morse, false; γ=3.0, β=10.0, cf=1.0, averagingLength=-0)[:, 2]
 p3 = plot([real.(tmpMorse1) imag.(tmpMorse1)], title = "Morse (γ=3, β=10)", labels = ["real" "imaginary"], ticks = nothing, linewidth = 4)
-tmpMorse2 = mapTo(Morse, false; γ=1.0, β=3.0, cf=1.0, averagingLength=-0, extraOctaves=3)[:, 2] 
+tmpMorse2 = mapTo(Morse, false; γ=1.0, β=3.0, cf=1.0, averagingLength=-2, extraOctaves=2)[:, 2] 
 p4 = plot([real.(tmpMorse2) imag.(tmpMorse2)], title = "Morse (γ=1, β=3)", labels = ["real" "imaginary"], ticks = nothing, linewidth = 4)
 p5 = plot(mapTo(dog2; averagingLength = -1.5)[:, 2], title = "derivative of gaussians (dog2)", legend = false, ticks = nothing, linewidth = 5)
 p6 = plot(mapTo(cHaar, true; averagingLength = 1)[:, 2], title = "Haar", legend = false, ticks = nothing, linewidth = 5)
