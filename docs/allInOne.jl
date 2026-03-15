@@ -156,7 +156,7 @@ p3 = plot([real.(tmpMorse1) imag.(tmpMorse1)],
     	labels = ["real" "imaginary"],
     	ticks = nothing,
     	linewidth = 4)
-tmpMorse2 = mapTo(Morse, false; γ=1.0, β=3.0, cf=1.0, averagingLength=-0)[:, 2] 
+tmpMorse2 = mapTo(Morse, false; γ=1.0, β=3.0, cf=1.0, averagingLength=-0, extraOctaves=3)[:, 2] 
 p4 = plot([real.(tmpMorse2) imag.(tmpMorse2)],
     	title = "Morse (γ=1, β=3)",
     	labels = ["real" "imaginary"],
