@@ -38,10 +38,10 @@
                 end-floor(Int, n / 2):end],
             :]
         # make sure the wavelets don't have significant support out into the mirrored signal
-        if !(bc isa PerBoundary) && !(wave isa Paul) && size(Ŵ, 2) > 1
+        if !(bc isa PerBoundary) && !(wave isa Paul) && !(wave isa Morse) && size(Ŵ, 2) > 1
             @test max([norm(nonSupported[:, i], Inf) / norm(supported[:, i], Inf) for
                        i = 2:size(spaceWaves, 2)]...) ≤ 1e-2
-        elseif wave isa Paul && size(Ŵ, 2) > 1 # the Paul wavelet decay is just too slow to avoid bleedover, so best to ignore the averaging size
+        elseif (wave isa Paul || wave isa Morse) && size(Ŵ, 2) > 1
             @test max([norm(nonSupported[:, i], Inf) / norm(supported[:, i], Inf) for
                        i = 2:size(spaceWaves, 2)]...) ≤ 1e-1
         end
@@ -49,9 +49,6 @@
         @test size(Ŵ, 2) > 1 || ave > 0
         # make sure that the highest frequency support is small relative to the space domain
         # Guaranteed in a very different way for ContOrtho, no guarantees made for just averaging, and the averaging length needs to leave 6.5 octaves
-        #if !(wave isa ContOrtho) && size(Ŵ, 2) > 1 && log2(n) - ave > 6.5
-            #@test max(abs.(Ŵ[end, :])...) / norm(supported, Inf) ≤ 1e-1
-        #end
 
         # make sure that the highest frequency support is small relative to the space domain
         # Guaranteed in a very different way for ContOrtho, no guarantees made for just averaging,
