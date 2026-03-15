@@ -37,7 +37,7 @@ function Morse_convert(ga::Real, be::Real, cf::Real)
     Morse(ga, be, cf)
 end
 
-Morse() = Morse_convert(3, 11, 1)
+Morse() = Morse_convert(3, 6, 1)
 class(::Morse) = "Morse";
 name(::Morse) = "morse";
 vanishingmoments(::Morse) = 0;
