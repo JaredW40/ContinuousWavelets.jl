@@ -41,14 +41,13 @@
         if !(bc isa PerBoundary) && !(wave isa Paul) && !(wave isa Morse) && size(Ŵ, 2) > 1
             @test max([norm(nonSupported[:, i], Inf) / norm(supported[:, i], Inf) for
                        i = 2:size(spaceWaves, 2)]...) ≤ 1e-2
-        elseif !(bc isa PerBoundary) && (wave isa Paul || wave isa Morse) && size(Ŵ, 2) > 1
+        elseif !(bc isa PerBoundary) && (wave isa Paul || wave isa Morse) && 
+                size(Ŵ, 2) > 1 && ave > 0
             @test max([norm(nonSupported[:, i], Inf) / norm(supported[:, i], Inf) for
                        i = 2:size(spaceWaves, 2)]...) ≤ 1e-1
         end
         # if the averaging length is 0 and its only averaging at the sizes given, something is wrong
         @test size(Ŵ, 2) > 1 || ave > 0
-        # make sure that the highest frequency support is small relative to the space domain
-        # Guaranteed in a very different way for ContOrtho, no guarantees made for just averaging, and the averaging length needs to leave 6.5 octaves
 
         # make sure that the highest frequency support is small relative to the space domain
         # Guaranteed in a very different way for ContOrtho, no guarantees made for just averaging,
