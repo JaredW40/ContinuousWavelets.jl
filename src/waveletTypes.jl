@@ -23,8 +23,8 @@ Base.show(io::IO, x::Morlet) = print(io, "Morlet mean $(x.σ)")
 
 
 struct Morse <: ContWaveClass
-    ga::Float64
     be::Float64
+    ga::Float64
     cf::Float64
 end
 """
@@ -32,12 +32,12 @@ end
 
 Return the Morse wavelet with the central frequency parameter `cf`, gamma parameter `ga`` and beta parameter `be``.
 """
-function Morse_convert(ga::Real, be::Real, cf::Real)
-    ga, be, cf = Float64.(ga), Float64.(be), Float64.(cf)
-    Morse(ga, be, cf)
+function Morse_convert(be::Real, ga::Real, cf::Real)
+    be, ga, cf = Float64.(be), Float64.(ga), Float64.(cf)
+    Morse(be, ga, cf)
 end
 
-Morse() = Morse_convert(2, 4, 1)
+Morse() = Morse_convert(4, 2, 1)
 class(::Morse) = "Morse";
 name(::Morse) = "morse";
 vanishingmoments(::Morse) = 0;
