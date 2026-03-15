@@ -64,12 +64,12 @@ are:
     ``\\psi\\hat(\\omega) \\propto \\chi_{\\omega \\geq 0} \\omega^N\\textrm{e}^{-\\omega}``
 
 - `Morse`: A family of exactly analytic wavelets. 
-    `Morse(ga::T,be::T,cf::T) where T <: Float64`. `ga` characterizes the symmetry 
-    of the Morse wavelet, `be` can be viewed as the decay or compactness parameter, 
-    and `cf` is a parameter that determines the frequency at which the magnitude of 
-    the wavelet is maximized. 
+    `Morse(ga::T,be::T,cf::T) where T <: Float64`. `ga` characterizes the 
+    symmetry of the Morse wavelet, `be` can be viewed as the decay or 
+    compactness parameter, and `cf` is a parameter that determines the 
+    frequency at which the magnitude of the wavelet is maximized. 
 
-    ``\\psi\\hat(\\omega) \\propto \\chi_{\\omega \\geq 0}(\\omega) \\omega^\\textrm{be}\\textrm{e}^{-(2\\pi\\omega)^{\\textrm{ga}}}\\textrm{, } be, ga \\geq 0``
+    ``\\psi\\hat(\\omega) \\propto \\chi_{\\omega \\geq 0}(\\omega) \\omega^\\textrm{be}\\textrm{e}^{-\\omega^{\\textrm{ga}}}\\textrm{, } ga, be \\geq 0``
 
 - `Dog{N}`: Derivative of a Gaussian, where N is the number of
     derivatives. `dogn` for `n` in `0:6`. The Sombrero/mexican hat/Marr wavelet

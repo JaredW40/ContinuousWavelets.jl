@@ -29,10 +29,10 @@ tmp = mapTo(Morlet(π), false; averagingLength = -0.2)[:, 2]
 p1 = plot([real.(tmp) imag.(tmp)], title = "Morlet", labels = ["real" "imaginary"], ticks = nothing, linewidth = 5)
 tmp = mapTo(paul2, false, averagingLength = -0.5)[:, 2]
 p2 = plot([real.(tmp) imag.(tmp)], title = "Paul 2", labels = ["real" "imaginary"], ticks = nothing, linewidth = 5)
-tmpMorse1 = mapTo(Morse, false; γ=3.0, β=10.0, cf=1.0, averagingLength=-0)[:, 2]
-p3 = plot([real.(tmpMorse1) imag.(tmpMorse1)], title = "Morse (γ=3, β=10)", labels = ["real" "imaginary"], ticks = nothing, linewidth = 4)
-tmpMorse2 = mapTo(Morse, false; γ=1.0, β=3.0, cf=1.0, averagingLength=-2)[:, 2] 
-p4 = plot([real.(tmpMorse2) imag.(tmpMorse2)], title = "Morse (γ=1, β=3)", labels = ["real" "imaginary"], ticks = nothing, linewidth = 4)
+tmpMorse1 = mapTo(Morse, false; γ=2.0, β=11.0, cf=1.0, averagingLength=-1)[:, 2]
+p3 = plot([real.(tmpMorse1) imag.(tmpMorse1)], title = "Morse (γ=2, β=11)", labels = ["real" "imaginary"], ticks = nothing, linewidth = 4)
+tmpMorse2 = mapTo(Morse, false; γ=1.0, β=2.0, cf=1.0, averagingLength=-2)[:, 2] 
+p4 = plot([real.(tmpMorse2) imag.(tmpMorse2)], title = "Morse (γ=1, β=2)", labels = ["real" "imaginary"], ticks = nothing, linewidth = 4)
 p5 = plot(mapTo(dog2; averagingLength = -1.5)[:, 2], title = "derivative of gaussians (dog2)", legend = false, ticks = nothing, linewidth = 5)
 p6 = plot(mapTo(cHaar, true; averagingLength = 1)[:, 2], title = "Haar", legend = false, ticks = nothing, linewidth = 5)
 p7 = plot(mapTo(cBeyl, true; d = 1, averagingLength = -0)[:, 2], title = "Beylkyin", legend = false, ticks = nothing, linewidth = 5)
@@ -46,5 +46,5 @@ plot(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, layout = (3, 4), size = 
 savefig("mothers.svg")#hide
 ```
 ![](mothers.svg)
-Above are examples of every mother wavelet family defined in this package; the only analytic and/or complex wavelets are the `Morlet` and the `Paul` wavelet families.
+Above are examples of every mother wavelet family defined in this package; the only analytic and/or complex wavelets are the `Morlet`, `Paul` and `Morse` wavelet families.
 Once you have chosen a type of wavelet, this is used to construct the more specific CWT, which specifies more details of the transform, such as frequency spacing, whether to include an averaging filter or not, a frame upper bound, etc.
