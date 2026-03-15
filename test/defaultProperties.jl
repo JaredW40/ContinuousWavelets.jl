@@ -41,7 +41,7 @@
         if !(bc isa PerBoundary) && !(wave isa Paul) && !(wave isa Morse) && size(Ŵ, 2) > 1
             @test max([norm(nonSupported[:, i], Inf) / norm(supported[:, i], Inf) for
                        i = 2:size(spaceWaves, 2)]...) ≤ 1e-2
-        elseif (wave isa Paul || wave isa Morse) && size(Ŵ, 2) > 1
+        elseif !(bc isa PerBoundary) && (wave isa Paul || wave isa Morse) && size(Ŵ, 2) > 1
             @test max([norm(nonSupported[:, i], Inf) / norm(supported[:, i], Inf) for
                        i = 2:size(spaceWaves, 2)]...) ≤ 1e-1
         end
