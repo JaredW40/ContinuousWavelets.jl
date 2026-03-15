@@ -48,27 +48,29 @@ function mother(this::CWT{W,T,Morse,N},
 
     ga = this.waveType.ga
     be = this.waveType.be
-    cf = this.waveType.cf
+    # cf = this.waveType.cf
     p = this.p
 
     fo = morsefreq(this)
-    fact = cf / fo
+    # fact = cf / fo
 
     #  ω = LinRange(0,1-(1/len),len)
     # om = 2 * pi * ω./ fact / max(1, s)
-    #om = 2 * pi * (ω / s)./ fact
+    # om = 2 * pi * (ω / s)./ fact
     # om = (ω / s) / cf
     # om = (ω / s) / fact
 
     om = ω / s
+    om_safe = max.(om, eps())
 
     if be == 0
         daughter = @. 2 * exp(-om^ga)
     else
-        daughter = @. 2 * exp(-be * log(fo) + fo^ga + be * log(om) - om^ga)
+        daughter = @. 2 * (om_safe / fo)^be * exp(-(om^ga - fo^ga))
     end
-
-    daughter[1] = 1 / 2 * daughter[1] # Due to unit step function
+    daughter[1] = 0
+    
+    # daughter[1] = 1 / 2 * daughter[1] # Due to unit step function
     # Ensure nice lowpass filters for beta=0;
     # Otherwise, doesn't matter since wavelets vanishes at zero frequency
 

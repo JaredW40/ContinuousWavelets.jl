@@ -10,7 +10,7 @@ on:
   pull_request: # run when pull requests are made
     paths:
       - src/*
-      - test/runtests.jl
+      - test/*
       - Manifest.toml
       - Project.toml
 jobs:
