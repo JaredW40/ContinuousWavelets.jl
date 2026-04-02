@@ -210,7 +210,6 @@ function getMean(c::CWT{W,T,<:Morlet}, s = 1) where {W,T}
     return s * c.σ[1]
 end
 function getMean(c::CWT{W,T,<:Morse}, s = 1) where {W,T}
-    #return s*c.waveType.cf
     return s * morsefreq(c)
 end
 
@@ -241,6 +240,10 @@ end
 
 function getUpperBound(c::CWT{W,T,<:Paul,N}, s) where {W,T,N}
     return (c.α + 1) * s
+end
+
+function getUpperBound(c::CWT{W,T,<:Morse,N}, s) where {W,T,N}
+    return getMean(c, s)
 end
 
 """

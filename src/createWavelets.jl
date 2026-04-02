@@ -161,6 +161,7 @@ function father(c::CWT{<:WaveletBoundary,T}, ω, averagingType::Dirac, sWidth) w
     return averaging
 end
 
+#= Issues with this lowpass filter (negative values produced).
 function father(c::CWT{W,T,<:Morse},
     ω,
     averagingType::ContinuousWavelets.Father,
@@ -170,8 +171,14 @@ function father(c::CWT{W,T,<:Morse},
     averaging = adjust(c) .* mother(c, s0, sWidth, ω_shift)
     return averaging
 end
-
-
+=# 
+function father(c::CWT{W,T,<:Morse},
+    ω,
+    averagingType::Father,
+    sWidth) where {W,T}
+    # Morse mother is bandpass at all scales; use Dirac lowpass instead. 
+    return father(c, ω, Dirac(), sWidth)
+end
 
 @doc """
     computeWavelets(n1::Integer, c::CWT{B,CT,W}; T = Float64, space = false) where {B<:WaveletBoundary,W,CT} -> daughters, ω
