@@ -210,6 +210,7 @@ function getMean(c::CWT{W,T,<:Morlet}, s = 1) where {W,T}
     return s * c.σ[1]
 end
 function getMean(c::CWT{W,T,<:Morse}, s = 1) where {W,T}
+    #return s*c.waveType.cf
     return s * morsefreq(c)
 end
 

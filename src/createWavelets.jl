@@ -48,29 +48,29 @@ function mother(this::CWT{W,T,Morse,N},
 
     ga = this.waveType.ga
     be = this.waveType.be
-    # cf = this.waveType.cf
+    cf = this.waveType.cf
     p = this.p
 
-    fo = morsefreq(this)
-    # fact = cf / fo
+    fo = morsefreq(this)   # fo = (be/ga)^(1/ga)
+    fact = cf / fo
 
     #  ω = LinRange(0,1-(1/len),len)
     # om = 2 * pi * ω./ fact / max(1, s)
-    # om = 2 * pi * (ω / s)./ fact
+    #om = 2 * pi * (ω / s)./ fact
     # om = (ω / s) / cf
-    # om = (ω / s) / fact
+    om = (ω / s) / fact
 
-    om = ω / s
-    om_safe = max.(om, eps())
+    # om = ω / s
 
     if be == 0
         daughter = @. 2 * exp(-om^ga)
     else
-        daughter = @. 2 * (om_safe / fo)^be * exp(-(om^ga - fo^ga))
+        # daughter = @. 2 * exp(-be * log(fo) + fo^ga + be * log(om) - om^ga)
+        a = 2 * (exp(1) * ga / be)^(be / ga)
+        daughter = @. a * om^be * exp(-om^ga)
     end
-    daughter[1] = 0
-    
-    # daughter[1] = 1 / 2 * daughter[1] # Due to unit step function
+
+    daughter[1] = 1 / 2 * daughter[1] # Due to unit step function
     # Ensure nice lowpass filters for beta=0;
     # Otherwise, doesn't matter since wavelets vanishes at zero frequency
 
@@ -172,12 +172,19 @@ function father(c::CWT{W,T,<:Morse},
     return averaging
 end
 =# 
-function father(c::CWT{W,T,<:Morse},
-    ω,
-    averagingType::Father,
-    sWidth) where {W,T}
-    # Morse mother is bandpass at all scales; use Dirac lowpass instead. 
-    return father(c, ω, Dirac(), sWidth)
+function father(c::CWT{W,T,<:Morse}, ω, averagingType::Father, sWidth) where {W,T}
+    s = 2^(getMinScaling(c) + c.averagingLength)
+    averaging = zeros(T, size(ω))
+    upperBound = getUpperBound(c, s)
+    for (i, w) in enumerate(ω)
+        if abs(w) <= upperBound * 0.8
+            averaging[i] = 1
+        elseif abs(w) <= upperBound
+            t = (abs(w) - 0.8*upperBound) / (0.2*upperBound)
+            averaging[i] = 0.5 * (1 + cos(π * t))
+        end
+    end
+    return averaging
 end
 
 @doc """
@@ -214,10 +221,23 @@ function computeWavelets(n1::Integer,
         daughters[:, 1] = father(c, ω, c.averagingType, sWidth[1])# [1:(n1+1)]
     end
 
-    # adjust by the frame bound
+    #= adjust by the frame bound
     if c.frameBound > 0
         daughters = daughters .* (c.frameBound / norm(daughters, 2))
     end
+    =#
+    if c.frameBound > 0
+        if isAve && typeof(c.waveType) <: Morse
+            # Morse Dirac father dominates the norm and gets crushed —
+            # scale daughters only, then reinsert father at correct scale
+            daughters[:, 2:end] = daughters[:, 2:end] .* 
+                                (c.frameBound / norm(daughters[:, 2:end], 2))
+            daughters[:, 1] = ContinuousWavelets.father(c, ω, c.averagingType, sWidth[1])
+        else
+            daughters = daughters .* (c.frameBound / norm(daughters, 2))
+        end
+    end
+
     testFourierDomainProperties(daughters, isAve)
     if space
         x = zeros(T, n1)
