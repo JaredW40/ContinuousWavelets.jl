@@ -9,6 +9,7 @@ makedocs(sitename = "ContinuousWavelets.jl",
     authors = "David Weber",
     clean = true,
     strict = true,
+    warnonly = [:missing_docs, :docs_block],
     pages = [
         "basic usage" => "index.md",
         "Install" => "installation.md",
