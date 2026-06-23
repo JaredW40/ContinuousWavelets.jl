@@ -5,6 +5,7 @@ ENV["LINES"] = "9"
 ENV["COLUMNS"] = "60"
 makedocs(sitename = "ContinuousWavelets.jl",
     format = Documenter.HTML(),
+    modules = [ContinuousWavelets],
     authors = "David Weber",
     clean = true,
     strict = true,
@@ -19,5 +20,4 @@ makedocs(sitename = "ContinuousWavelets.jl",
             "Inversion" => "inverse.md"
         ]
     ])
-
 deploydocs(repo = "github.com/UCD4IDS/ContinuousWavelets.jl.git")
