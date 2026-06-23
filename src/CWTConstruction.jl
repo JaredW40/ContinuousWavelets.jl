@@ -29,6 +29,7 @@ struct CWT{B,S,W<:ContWaveClass,N,isAn} <: ContWave{B,S}
     # wavelets as the scale changes. The conjugate
     # p-norm is preserved for the  signal. Should be
     # larger than 1
+    fsample::S
 end
 
 # aliased = ((:Q,:s,:scalingFactor), (:β,:decreasing), (:p, :normalization))
@@ -68,6 +69,7 @@ function CWT(wave::WC,
     p::N = Inf,
     β = 4;
     extraOctaves = 0,
+    fsample=2000,
     kwargs...) where {WC<:ContWaveClass,A<:Average,B<:WaveletBoundary,N<:Real}
     Q, β, p = processKeywordArgs(Q, β, p; kwargs...) # some names are redundant
     @assert β > 0
@@ -94,7 +96,8 @@ function CWT(wave::WC,
         S(averagingLength),
         averagingType,
         S(frameBound),
-        S(p))
+        S(p),
+        S(fsample))
 end
 
 
@@ -152,10 +155,9 @@ function waveletType(::CWT{B,T,W,N}) where {B,T,W,N}
 end
 
 function Base.show(io::IO, cf::CWT{W,S,WT,N}) where {W,S,WT,N}
-    print(io,
-        "CWT{$(cf.waveType), $(cf.averagingType), Q=$(cf.Q), β=$(cf.β)," *
-        "aveLen=$(cf.averagingLength), frame=" *
-        "$(cf.frameBound), norm=$(cf.p), extraOctaves=$(cf.extraOctaves)}")
+    print(io, "CWT{$(cf.waveType), $(cf.averagingType), Q=$(cf.Q), β=$(cf.β)," *
+        "aveLen=$(cf.averagingLength), frame=$(cf.frameBound), norm=$(cf.p), " *
+        "extraOctaves=$(cf.extraOctaves), fsample=$(cf.fsample)}")
 end
 
 
@@ -173,6 +175,7 @@ function wavelet(wave::WC;
     frameBound = 1,
     p::N = Inf,
     β = 4,
+    fsample=2000,
     kwargs...) where {WC<:ContWaveClass,A<:Average,T<:WaveletBoundary,N<:Real}
     return CWT(wave,
         Q,
@@ -182,5 +185,6 @@ function wavelet(wave::WC;
         frameBound,
         p,
         β;
+        fsample=fsample, 
         kwargs...)
 end

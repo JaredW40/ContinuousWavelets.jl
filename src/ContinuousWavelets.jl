@@ -44,6 +44,8 @@ export qmf,
     getDualCoverage,
     caveats
 
+export reflect
+
 @doc """
     ContWave{Boundary,T}
 The abstract type encompassing the various types of wavelets implemented in

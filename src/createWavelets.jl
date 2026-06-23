@@ -160,8 +160,7 @@ function father(c::CWT{<:WaveletBoundary,T}, ω, averagingType::Dirac, sWidth) w
     averaging[abs.(ω).<=upperBound] .= 1
     return averaging
 end
-
-#= Issues with this lowpass filter (negative values produced).
+#=
 function father(c::CWT{W,T,<:Morse},
     ω,
     averagingType::ContinuousWavelets.Father,

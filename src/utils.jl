@@ -51,26 +51,31 @@ end
 Different wavelet familes need to end at a different number of octaves because they have different tail behavior.
 """
 getNOctaves(n1, c::CWT{W,T,M,N}) where {W,T,N,M} = log2(n1 >> 1 + 1) + c.extraOctaves
+
 # choose the number of octaves so the last mean, which is at s*σ[1]
 # is 3 standard devations away from the end
 function getNOctaves(n1, c::CWT{W,T,Morlet,N}) where {W,T,N}
-    log2((n1 >> 1 + 1) / (c.σ[1] + 3)) + c.extraOctaves
+    # log2((n1 >> 1 + 1) / (c.σ[1] + 3)) + c.extraOctaves
+    log2((n1 >> 1 + 1) / (c.σ[1] + 3) * (c.fsample/2000)) + c.extraOctaves
 end
 function getNOctaves(n1, c::CWT{W,T,<:Paul,N}) where {W,T,N}
-    log2((n1 >> 1 + 1) / (2c.α + 5)) + c.extraOctaves
+    # log2((n1 >> 1 + 1) / (2c.α + 5)) + c.extraOctaves
+    log2((n1 >> 1 + 1) / (2c.α + 5) * (c.fsample/2000)) + c.extraOctaves
 end
 # choose the number of octaves so the last mean is 5 standard deviations from the end
 function getNOctaves(n1, c::CWT{W,T,<:Dog,N}) where {W,T,N}
     μ = getMean(c)
     σ = getStd(c)
-    log2(n1 >> 1 / (μ + 5σ)) + c.extraOctaves
+    # log2(n1 >> 1 / (μ + 5σ)) + c.extraOctaves
+    log2(n1 >> 1 / (μ + 5σ) * (c.fsample/2000)) + c.extraOctaves
 end
 # choose the number of octaves so the smallest support is twice the qmf
 function getNOctaves(n1, c::CWT{W,T,<:ContOrtho,N}) where {W,T,N}
     log2(n1) - 2 - log2(length(qmf(c.waveType))) + c.extraOctaves
 end
 function getNOctaves(n1, c::CWT{W,T,Morse,N}) where {W,T,N}
-    log2((n1 >> 1 + 1) / (morsefreq(c) + 1)) + c.extraOctaves
+    # log2((n1 >> 1 + 1) / (morsefreq(c) + 1)) + c.extraOctaves
+    log2((n1 >> 1 + 1) / (morsefreq(c) + 1) * (c.fsample/2000)) + c.extraOctaves
 end
 # getNOctaves(n1,c::CWT{W,T, Morse, N}) where {W, T, N} = 4 + c.extraOctaves
 
@@ -259,9 +264,9 @@ function getMeanFreq(Ŵ::Array, fsample = 2000)
     return map(ŵ -> sum(abs2.(ŵ) .* freqs), eachcol(Ŵ)) ./ eachNorm
 end
 
-function getMeanFreq(n1, cw::CWT, fsample = 2000)
+function getMeanFreq(n1, cw::CWT)
     Ŵ, ω = computeWavelets(n1, cw)
-    getMeanFreq(Ŵ, fsample)
+    getMeanFreq(Ŵ, cw.fsample)
 end
 
 
@@ -405,14 +410,14 @@ end
 
 
 """
-    caveats(n1, c::CWT{B,CT,W}; coiTolerance = exp(-2), fsample = 2000) -> sRange, meanFreqs, coi
+    caveats(n1, c::CWT{B,CT,W}; coiTolerance = exp(-2)) -> sRange, meanFreqs, coi
 
 Given a length `n1` and a CWT struct `c`, returns the scales `sRange` used, the mean frequencies of the wavelets `meanFreqs`, and the cone of influence `coi` for each wavelet.
 Returns the period, the scales, and the cone of influence for the given wavelet transform.
 If you have sampling information, you will need to scale the vector scale appropriately by
 1/δt, and the actual transform by δt^(1/p).
 """
-function caveats(n1, c::CWT; coiTolerance = exp(-2), fsample = 2000)
+function caveats(n1, c::CWT; coiTolerance = exp(-2))
     nOctaves, totalWavelets, sRange, sWidth = getNWavelets(n1, c)
     # padding determines the actual number of elements
     n, nSpace = setn(n1, c)
@@ -421,7 +426,7 @@ function caveats(n1, c::CWT; coiTolerance = exp(-2), fsample = 2000)
 
     # Fourier equivalent frequencies
     Ŵ, ω = computeWavelets(n1, c)
-    freqs = getMeanFreq(Ŵ, fsample)
+    freqs = getMeanFreq(Ŵ, c.fsample)
     coi = directCoiComputation(n1, c; coiTolerance = coiTolerance)
     return sRange, freqs, coi
 end
@@ -554,7 +559,8 @@ function sharedCrossSpectrum(X, Y, c)
             c.averagingLength,
             c.frameBound,
             c.p,
-            c.β)
+            c.β;
+            fsample=c.fsample)
     else
         cAve = c
     end
