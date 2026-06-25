@@ -46,7 +46,8 @@ function cwt(Y::AbstractArray{T,N}, cWav::CWT, daughters, fftPlans = 1) where {N
         OutType = T
     end
 
-    wave = zeros(OutType, size(x)..., nScales)  # result array
+    # wave = zeros(OutType, size(x)..., nScales)  # result array (CPU Safe)
+    wave = fill!(similar(x, OutType, size(x)..., nScales), 0) # (GPU Safe)
     # faster if we put the example index on the outside loop through all scales
     # and compute transform
     if isAnalytic(cWav.waveType)
@@ -131,18 +132,19 @@ end
 function analyticTransformReal!(wave, daughters, x̂, fftPlan, ::Union{Father,Dirac})
     outer = axes(x̂)[2:end]
     n1 = size(x̂, 1)
-    isSourceEven = mod(size(wave, 1) + 1, 2)
+    nWave = size(wave, 1)
+    isSourceEven = mod(nWave + 1, 2)
+    negFreqEnd = n1 - isSourceEven
     # the averaging function isn't analytic, so we need to do both positive and
     # negative frequencies
     @views tmpWave = x̂ .* daughters[:, 1]
-    @views wave[(n1+1):end, outer..., 1] = reverse(conj.(tmpWave[2:end-isSourceEven,
-            outer...]),
-        dims = 1)
-    @views wave[1:n1, outer..., 1] = tmpWave
-    @views wave[:, outer..., 1] = fftPlan \ (wave[:, outer..., 1])  # averaging
+    @views wave[(n1+1):end, outer..., 1] .= reverse(conj.(tmpWave[2:negFreqEnd,
+            outer...]), dims = 1)
+    @views wave[1:n1, outer..., 1] .= tmpWave
+    @views wave[:, outer..., 1] .= fftPlan \ copy(wave[:, outer..., 1])  # averaging
     for j = 2:size(daughters, 2)
-        @views wave[1:n1, outer..., j] = x̂ .* daughters[:, j]
-        wave[:, outer..., j] = fftPlan \ (wave[:, outer..., j])  # wavelet transform
+        @views wave[1:n1, outer..., j] .= x̂ .* daughters[:, j]
+        @views wave[:, outer..., j] .= fftPlan \ copy(wave[:, outer..., j]) # wavelet transform
     end
 end
 
@@ -150,18 +152,20 @@ end
 function analyticTransformComplex!(wave, daughters, x̂, fftPlan, ::Union{Father,Dirac})
     outer = axes(x̂)[2:end]
     n1 = size(daughters, 1)
-    isSourceEven = mod(size(wave, 1) + 1, 2)
+    nWave = size(wave, 1)
+    isSourceEven = mod(nWave + 1, 2)
+    negFreqStart = n1 - isSourceEven + 1
     # the averaging function isn't analytic, so we need to do both positive and
     # negative frequencies
     @views positiveFreqs = x̂[1:n1, outer...] .* daughters[:, 1]
-    @views negativeFreqs = x̂[(n1-isSourceEven+1):end, outer...] .*
+    @views negativeFreqs = x̂[negFreqStart:end, outer...] .*
                            reverse(conj.(daughters[2:end, 1]))
-    @views wave[(n1-isSourceEven+1):end, outer..., 1] = negativeFreqs
-    @views wave[1:n1, outer..., 1] = positiveFreqs
-    @views wave[:, outer..., 1] = fftPlan \ (wave[:, outer..., 1])  # averaging
+    @views wave[negFreqStart:end, outer..., 1] .= negativeFreqs
+    @views wave[1:n1, outer..., 1] .= positiveFreqs
+    @views wave[:, outer..., 1] .= fftPlan \ copy(wave[:, outer..., 1])  # averaging
     for j = 2:size(daughters, 2)
-        @views wave[1:n1, outer..., j] = x̂[1:n1, outer...] .* daughters[:, j]
-        @views wave[:, outer..., j] = fftPlan \ (wave[:, outer..., j])  # wavelet transform
+        @views wave[1:n1, outer..., j] .= x̂[1:n1, outer...] .* daughters[:, j]
+        @views wave[:, outer..., j] .= fftPlan \ copy(wave[:, outer..., j])  # wavelet transform
     end
 end
 
@@ -169,8 +173,8 @@ function analyticTransformComplex!(wave, daughters, x̂, fftPlan, averagingType)
     outer = axes(x̂)[2:end]
     n1 = size(x̂, 1)
     for j = 1:size(daughters, 2)
-        @views wave[1:n1, outer..., j] = x̂[1:n1, outer...] .* daughters[:, j]
-        @views wave[:, outer..., j] = fftPlan \ (wave[:, outer..., j])  # wavelet transform
+        @views wave[1:n1, outer..., j] .= x̂[1:n1, outer...] .* daughters[:, j]
+        @views wave[:, outer..., j] .= fftPlan \ copy(wave[:, outer..., j])  # wavelet transform
     end
 end
 
@@ -180,8 +184,8 @@ function analyticTransformReal!(wave, daughters, x̂, fftPlan, ::NoAve)
     n1 = size(x̂, 1)
     # the no averaging version
     for j = 1:size(daughters, 2)
-        wave[1:n1, outer..., j] = x̂ .* daughters[:, j]
-        wave[:, outer..., j] = fftPlan \ (wave[:, outer..., j])  # wavelet transform
+        @views wave[1:n1, outer..., j] .= x̂ .* daughters[:, j]
+        @views wave[:, outer..., j] .= fftPlan \ copy(wave[:, outer..., j])  # wavelet transform
     end
 end
 
@@ -196,7 +200,7 @@ function otherwiseTransform!(wave::AbstractArray{<:Real},
     n1 = size(x̂, 1)
     for j = 1:size(daughters, 2)
         @views tmp = x̂ .* daughters[:, j]
-        @views wave[:, outer..., j] = fromPlan \ tmp  # wavelet transform
+        @views wave[:, outer..., j] .= fromPlan \ tmp  # wavelet transform
     end
 end
 
@@ -210,20 +214,21 @@ function otherwiseTransform!(wave::AbstractArray{<:Complex},
     outer = axes(x̂)[2:end]
     n1 = size(daughters, 1)
     isSourceEven = mod(size(fromPlan, 1) + 1, 2)
+    negStart = n1 - isSourceEven + 1
     for j = 1:size(daughters, 2)
-        @views wave[1:n1, outer..., j] = @views x̂[1:n1, outer...] .* daughters[:, j]
-        @views wave[n1-isSourceEven+1:end, outer..., j] = x̂[n1-isSourceEven+1:end,
-            outer...] .* reverse(conj.(daughters[2:end,
-            j]))
-        @views wave[:, outer..., j] = fromPlan \ (wave[:, outer..., j])  # wavelet transform
+        @views wave[1:n1, outer..., j] .= x̂[1:n1, outer...] .* daughters[:, j]
+        @views wave[negStart:end, outer..., j] .= x̂[negStart:end, outer...] .*
+                                            reverse(conj.(daughters[2:end, j]))
+        @views wave[:, outer..., j] .= fromPlan \ copy(wave[:, outer..., j])  # wavelet transform
     end
 end
 
-function reflect(Y, bt)
+function reflect(Y, bt) 
     n1 = size(Y, 1)
     if typeof(bt) <: ZPBoundary
         base2 = ceil(Int, log2(n1))   # power of 2 nearest to N
-        x = cat(Y, zeros(2^(base2) - n1, size(Y)[2:end]...), dims = 1)
+        # x = cat(Y, zeros(2^(base2) - n1, size(Y)[2:end]...), dims = 1)
+        x = cat(Y, zeros(eltype(Y), 2^(base2) - n1, size(Y)[2:end]...), dims = 1)
     elseif typeof(bt) <: SymBoundary
         x = cat(Y, reverse(Y, dims = 1), dims = 1)
     else
@@ -231,7 +236,6 @@ function reflect(Y, bt)
     end
     return x
 end
-
 
 function cwt(Y::AbstractArray{T},
     c::CWT{W};
