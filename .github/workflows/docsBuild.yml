@@ -20,7 +20,8 @@ jobs:
           version: '1.7'
       - name: Install dependencies
         run: |
-          sudo apt install libxt6 libxrender1 libxext6 libqt5widgets5
+          sudo apt-get update
+          sudo apt-get install -y --fix-missing libxt6 libxrender1 libxext6 libqt5widgets5
       - name: Instantiate
         env:
           PYTHON: ""
