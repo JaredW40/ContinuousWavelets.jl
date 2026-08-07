@@ -139,8 +139,8 @@ function analyticTransformReal!(wave, daughters, x̂, fftPlan, ::Union{Father,Di
     # the averaging function isn't analytic, so we need to do both positive and
     # negative frequencies
     @views tmpWave = x̂ .* daughters[:, 1]
-    @views wave[(n1+1):end, outer..., 1] .= reverse(conj.(tmpWave[2:negFreqEnd,
-            outer...]), dims = 1)
+    @views wave[(n1+1):end, outer..., 1] .= _reverseDim1(conj.(tmpWave[2:negFreqEnd,
+            outer...]))
     @views wave[1:n1, outer..., 1] .= tmpWave
     @views wave[:, outer..., 1] .= fftPlan \ copy(wave[:, outer..., 1])  # averaging
     for j = 2:size(daughters, 2)
@@ -160,7 +160,7 @@ function analyticTransformComplex!(wave, daughters, x̂, fftPlan, ::Union{Father
     # negative frequencies
     @views positiveFreqs = x̂[1:n1, outer...] .* daughters[:, 1]
     @views negativeFreqs = x̂[negFreqStart:end, outer...] .*
-                           reverse(conj.(daughters[2:end, 1]))
+                           _reverseDim1(conj.(daughters[2:end, 1]))
     @views wave[negFreqStart:end, outer..., 1] .= negativeFreqs
     @views wave[1:n1, outer..., 1] .= positiveFreqs
     @views wave[:, outer..., 1] .= fftPlan \ copy(wave[:, outer..., 1])  # averaging
@@ -219,7 +219,7 @@ function otherwiseTransform!(wave::AbstractArray{<:Complex},
     for j = 1:size(daughters, 2)
         @views wave[1:n1, outer..., j] .= x̂[1:n1, outer...] .* daughters[:, j]
         @views wave[negStart:end, outer..., j] .= x̂[negStart:end, outer...] .*
-                                            reverse(conj.(daughters[2:end, j]))
+                                            _reverseDim1(conj.(daughters[2:end, j]))
         @views wave[:, outer..., j] .= fromPlan \ copy(wave[:, outer..., j])  # wavelet transform
     end
 end
@@ -228,10 +228,9 @@ function reflect(Y, bt)
     n1 = size(Y, 1)
     if typeof(bt) <: ZPBoundary
         base2 = ceil(Int, log2(n1))   # power of 2 nearest to N
-        # x = cat(Y, zeros(2^(base2) - n1, size(Y)[2:end]...), dims = 1)
         x = cat(Y, zeros(eltype(Y), 2^(base2) - n1, size(Y)[2:end]...), dims = 1)
     elseif typeof(bt) <: SymBoundary
-        x = cat(Y, reverse(Y, dims = 1), dims = 1)
+        x = cat(Y, _reverseDim1(Y), dims = 1)
     else
         x = Y
     end
@@ -270,6 +269,9 @@ function _checkMatchingDevice(Y::AbstractArray, daughters::AbstractArray)
               "CuArray(daughters) or MtlArray(daughters).")
     return nothing
 end
+
+_reverseDim1(A::AbstractVector) = A[length(A):-1:1]
+_reverseDim1(A::AbstractArray) = A[size(A, 1):-1:1, ntuple(_ -> Colon(), ndims(A) - 1)...]
 
 """
     icwt(res::AbstractArray, cWav::CWT, inverseStyle::InverseType=PenroseDelta())
