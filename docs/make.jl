@@ -9,6 +9,7 @@ makedocs(sitename = "ContinuousWavelets.jl",
     authors = "David Weber",
     clean = true,
     checkdocs = :none,
+    doctestfilters = [r"@ ContinuousWavelets .*\.jl:\d+"],
     pages = [
         "basic usage" => "index.md",
         "Install" => "installation.md",

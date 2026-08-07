@@ -53,7 +53,7 @@ julia> res = cwt(f, c)
 And now we make a scalogram to actually visualize these entries:
 
 ```julia
-freqs = getMeanFreq(computeWavelets(n, c)[1])
+freqs = getMeanFreq(n, c)
 freqs[1] = 0
 p2 = heatmap(t, freqs, log.(abs.(res).^2)', xlabel= "time (s)", ylabel="frequency (Hz)", colorbar=false, c=cgrad(:viridis, scale=:log10))
 l = @layout [a{.3h};b{.7h}]

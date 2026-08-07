@@ -8,7 +8,7 @@ p1 = plot(t, f, legend = false, title = "Doppler", xticks = false, linewidth = 2
 c = wavelet(Morlet(π), β = 2);
 res = cwt(f, c)
 # plotting
-freqs = getMeanFreq(computeWavelets(n, c)[1])
+freqs = getMeanFreq(n, c)
 freqs[1] = 0
 p2 = heatmap(t,
     freqs,

@@ -21,6 +21,7 @@
 """
 function cwt(Y::AbstractArray{T,N}, cWav::CWT, daughters, fftPlans = 1) where {N,T}
     @assert typeof(N) <: Integer
+    _checkMatchingDevice(Y, daughters)
     # vectors behave a bit strangely, so we reshape them
     if N == 1
         Y = reshape(Y, (length(Y), 1))
@@ -237,10 +238,15 @@ function reflect(Y, bt)
     return x
 end
 
-function cwt(Y::AbstractArray{T},
-    c::CWT{W};
-    varArgs...) where {T<:Number,W<:WaveletBoundary}
+_matchPrecision(reference::AbstractArray, x::AbstractArray) =
+    eltype(x) <: Complex ? Complex{real(eltype(reference))}.(x) : real(eltype(reference)).(x)
+
+_matchDevice(reference::AbstractArray, x::AbstractArray) = adapt(_backend(reference), x)
+
+function cwt(Y::AbstractArray{T}, c::CWT{W}; varArgs...) where {T<:Number,W<:WaveletBoundary}
     daughters, ω = computeWavelets(size(Y, 1), c; varArgs...)
+    daughters = _matchPrecision(Y, daughters)
+    daughters = _matchDevice(Y, daughters)
     return cwt(Y, c, daughters)
 end
 
@@ -253,6 +259,17 @@ abstract type InverseType end
 struct DualFrames <: InverseType end
 struct NaiveDelta <: InverseType end
 struct PenroseDelta <: InverseType end
+
+_backend(x::AbstractArray) = Base.typename(typeof(x)).wrapper
+
+function _checkMatchingDevice(Y::AbstractArray, daughters::AbstractArray)
+    _backend(Y) === _backend(daughters) ||
+        error("cwt: signal is a $(_backend(Y)) but daughters is a " *
+              "$(_backend(daughters)) -- move daughters onto the same " *
+              "device as the signal before calling cwt, e.g. " *
+              "CuArray(daughters) or MtlArray(daughters).")
+    return nothing
+end
 
 """
     icwt(res::AbstractArray, cWav::CWT, inverseStyle::InverseType=PenroseDelta())
@@ -269,30 +286,39 @@ Return the inverse continuous wavelet transform, computed using the canonical du
 
 """
 function icwt(res::AbstractArray, cWav::CWT, ::PenroseDelta)
-    Ŵ = computeWavelets(size(res, 1), cWav)[1]
-    β = computeDualWeights(Ŵ, cWav)
-    testDualCoverage(β, Ŵ)
+    Ŵ = computeWavelets(size(res, 1), cWav)[1]
+    Ŵ = _matchPrecision(res, Ŵ)
+    β = computeDualWeights(Ŵ, cWav)
+    β = _matchPrecision(res, β)
+    testDualCoverage(β, Ŵ)
+    β = _matchDevice(res, β)
     compXRecon = sum(res .* β, dims = 2)
-    imagXRecon = irfft(im * rfft(imag.(compXRecon), 1), size(compXRecon, 1)) # turns out the dual frame for the imaginary part is rather gross in the time domain
+    imagXRecon = irfft(im * rfft(imag.(compXRecon), 1), size(compXRecon, 1))
     return imagXRecon + real.(compXRecon)
 end
 
 function icwt(res::AbstractArray, cWav::CWT, ::NaiveDelta)
-    Ŵ = computeWavelets(size(res, 1), cWav)[1]
-    β = computeNaiveDualWeights(Ŵ, cWav, size(res, 1))
-    testDualCoverage(β, Ŵ)
+    Ŵ = computeWavelets(size(res, 1), cWav)[1]
+    Ŵ = _matchPrecision(res, Ŵ)
+    β = computeNaiveDualWeights(Ŵ, cWav, size(res, 1))
+    β = _matchPrecision(res, β)
+    testDualCoverage(β, Ŵ)
+    β = _matchDevice(res, β)
     compXRecon = sum(res .* β, dims = 2)
-    imagXRecon = irfft(im * rfft(imag.(compXRecon), 1), size(compXRecon, 1)) # turns out the dual frame for the imaginary part is rather gross in the time domain
+    imagXRecon = irfft(im * rfft(imag.(compXRecon), 1), size(compXRecon, 1))
     return imagXRecon + real.(compXRecon)
 end
 
 function icwt(res::AbstractArray, cWav::CWT, ::DualFrames)
-    Ŵ = computeWavelets(size(res, 1), cWav)[1]
-    canonDualFrames = explicitConstruction(Ŵ)
+    Ŵ = computeWavelets(size(res, 1), cWav)[1]
+    Ŵ = _matchPrecision(res, Ŵ)
+    canonDualFrames = explicitConstruction(Ŵ)
+    canonDualFrames = _matchPrecision(res, canonDualFrames)
     testDualCoverage(canonDualFrames)
+    canonDualFrames = _matchDevice(res, canonDualFrames)
     convolved = cwt(res, cWav, canonDualFrames)
     ax = axes(convolved)
-    @views xRecon = sum(convolved[:, i, i, ax[4:end]...] for i = 1:size(Ŵ, 2))
+    @views xRecon = sum(convolved[:, i, i, ax[4:end]...] for i = 1:size(Ŵ, 2))
     return xRecon
 end
 
