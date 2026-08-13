@@ -86,11 +86,6 @@ using BenchmarkTools
             @info "CWT speed: wave=$(wave), xSize=$(xSize), boundary=$(boundary)" cpu_time=t_cpu gpu_time=t_gpu speedup=t_cpu/t_gpu
         end
 
-        #=  Confirmed against real hardware: _checkMatchingDevice fires
-            cleanly (a plain ErrorException with a clear message, not the
-            opaque KernelError this used to throw), and the icwt fix (once
-            pasted in -- see chat) resolves the PenroseDelta/NaiveDelta/
-            DualFrames KernelErrors the same way. =#
         @testset "device mismatch handling" begin
             xSize = 512
             wfc = wavelet(morl, β = 2)
