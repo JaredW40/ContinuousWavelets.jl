@@ -21,6 +21,7 @@
 """
 function cwt(Y::AbstractArray{T,N}, cWav::CWT, daughters, fftPlans = 1) where {N,T}
     @assert typeof(N) <: Integer
+    _checkMatchingDevice(Y, daughters)
     # vectors behave a bit strangely, so we reshape them
     if N == 1
         Y = reshape(Y, (length(Y), 1))
@@ -138,8 +139,8 @@ function analyticTransformReal!(wave, daughters, x̂, fftPlan, ::Union{Father,Di
     # the averaging function isn't analytic, so we need to do both positive and
     # negative frequencies
     @views tmpWave = x̂ .* daughters[:, 1]
-    @views wave[(n1+1):end, outer..., 1] .= reverse(conj.(tmpWave[2:negFreqEnd,
-            outer...]), dims = 1)
+    @views wave[(n1+1):end, outer..., 1] .= _reverseDim1(conj.(tmpWave[2:negFreqEnd,
+            outer...]))
     @views wave[1:n1, outer..., 1] .= tmpWave
     @views wave[:, outer..., 1] .= fftPlan \ copy(wave[:, outer..., 1])  # averaging
     for j = 2:size(daughters, 2)
@@ -159,7 +160,7 @@ function analyticTransformComplex!(wave, daughters, x̂, fftPlan, ::Union{Father
     # negative frequencies
     @views positiveFreqs = x̂[1:n1, outer...] .* daughters[:, 1]
     @views negativeFreqs = x̂[negFreqStart:end, outer...] .*
-                           reverse(conj.(daughters[2:end, 1]))
+                           _reverseDim1(conj.(daughters[2:end, 1]))
     @views wave[negFreqStart:end, outer..., 1] .= negativeFreqs
     @views wave[1:n1, outer..., 1] .= positiveFreqs
     @views wave[:, outer..., 1] .= fftPlan \ copy(wave[:, outer..., 1])  # averaging
@@ -218,7 +219,7 @@ function otherwiseTransform!(wave::AbstractArray{<:Complex},
     for j = 1:size(daughters, 2)
         @views wave[1:n1, outer..., j] .= x̂[1:n1, outer...] .* daughters[:, j]
         @views wave[negStart:end, outer..., j] .= x̂[negStart:end, outer...] .*
-                                            reverse(conj.(daughters[2:end, j]))
+                                            _reverseDim1(conj.(daughters[2:end, j]))
         @views wave[:, outer..., j] .= fromPlan \ copy(wave[:, outer..., j])  # wavelet transform
     end
 end
@@ -227,20 +228,24 @@ function reflect(Y, bt)
     n1 = size(Y, 1)
     if typeof(bt) <: ZPBoundary
         base2 = ceil(Int, log2(n1))   # power of 2 nearest to N
-        # x = cat(Y, zeros(2^(base2) - n1, size(Y)[2:end]...), dims = 1)
         x = cat(Y, zeros(eltype(Y), 2^(base2) - n1, size(Y)[2:end]...), dims = 1)
     elseif typeof(bt) <: SymBoundary
-        x = cat(Y, reverse(Y, dims = 1), dims = 1)
+        x = cat(Y, _reverseDim1(Y), dims = 1)
     else
         x = Y
     end
     return x
 end
 
-function cwt(Y::AbstractArray{T},
-    c::CWT{W};
-    varArgs...) where {T<:Number,W<:WaveletBoundary}
+_matchPrecision(reference::AbstractArray, x::AbstractArray) =
+    eltype(x) <: Complex ? Complex{real(eltype(reference))}.(x) : real(eltype(reference)).(x)
+
+_matchDevice(reference::AbstractArray, x::AbstractArray) = adapt(_backend(reference), x)
+
+function cwt(Y::AbstractArray{T}, c::CWT{W}; varArgs...) where {T<:Number,W<:WaveletBoundary}
     daughters, ω = computeWavelets(size(Y, 1), c; varArgs...)
+    daughters = _matchPrecision(Y, daughters)
+    daughters = _matchDevice(Y, daughters)
     return cwt(Y, c, daughters)
 end
 
@@ -253,6 +258,20 @@ abstract type InverseType end
 struct DualFrames <: InverseType end
 struct NaiveDelta <: InverseType end
 struct PenroseDelta <: InverseType end
+
+_backend(x::AbstractArray) = Base.typename(typeof(x)).wrapper
+
+function _checkMatchingDevice(Y::AbstractArray, daughters::AbstractArray)
+    _backend(Y) === _backend(daughters) ||
+        error("cwt: signal is a $(_backend(Y)) but daughters is a " *
+              "$(_backend(daughters)) -- move daughters onto the same " *
+              "device as the signal before calling cwt, e.g. " *
+              "CuArray(daughters) or MtlArray(daughters).")
+    return nothing
+end
+
+_reverseDim1(A::AbstractVector) = A[length(A):-1:1]
+_reverseDim1(A::AbstractArray) = A[size(A, 1):-1:1, ntuple(_ -> Colon(), ndims(A) - 1)...]
 
 """
     icwt(res::AbstractArray, cWav::CWT, inverseStyle::InverseType=PenroseDelta())
@@ -269,30 +288,39 @@ Return the inverse continuous wavelet transform, computed using the canonical du
 
 """
 function icwt(res::AbstractArray, cWav::CWT, ::PenroseDelta)
-    Ŵ = computeWavelets(size(res, 1), cWav)[1]
-    β = computeDualWeights(Ŵ, cWav)
-    testDualCoverage(β, Ŵ)
+    Ŵ = computeWavelets(size(res, 1), cWav)[1]
+    Ŵ = _matchPrecision(res, Ŵ)
+    β = computeDualWeights(Ŵ, cWav)
+    β = _matchPrecision(res, β)
+    testDualCoverage(β, Ŵ)
+    β = _matchDevice(res, β)
     compXRecon = sum(res .* β, dims = 2)
-    imagXRecon = irfft(im * rfft(imag.(compXRecon), 1), size(compXRecon, 1)) # turns out the dual frame for the imaginary part is rather gross in the time domain
+    imagXRecon = irfft(im * rfft(imag.(compXRecon), 1), size(compXRecon, 1))
     return imagXRecon + real.(compXRecon)
 end
 
 function icwt(res::AbstractArray, cWav::CWT, ::NaiveDelta)
-    Ŵ = computeWavelets(size(res, 1), cWav)[1]
-    β = computeNaiveDualWeights(Ŵ, cWav, size(res, 1))
-    testDualCoverage(β, Ŵ)
+    Ŵ = computeWavelets(size(res, 1), cWav)[1]
+    Ŵ = _matchPrecision(res, Ŵ)
+    β = computeNaiveDualWeights(Ŵ, cWav, size(res, 1))
+    β = _matchPrecision(res, β)
+    testDualCoverage(β, Ŵ)
+    β = _matchDevice(res, β)
     compXRecon = sum(res .* β, dims = 2)
-    imagXRecon = irfft(im * rfft(imag.(compXRecon), 1), size(compXRecon, 1)) # turns out the dual frame for the imaginary part is rather gross in the time domain
+    imagXRecon = irfft(im * rfft(imag.(compXRecon), 1), size(compXRecon, 1))
     return imagXRecon + real.(compXRecon)
 end
 
 function icwt(res::AbstractArray, cWav::CWT, ::DualFrames)
-    Ŵ = computeWavelets(size(res, 1), cWav)[1]
-    canonDualFrames = explicitConstruction(Ŵ)
+    Ŵ = computeWavelets(size(res, 1), cWav)[1]
+    Ŵ = _matchPrecision(res, Ŵ)
+    canonDualFrames = explicitConstruction(Ŵ)
+    canonDualFrames = _matchPrecision(res, canonDualFrames)
     testDualCoverage(canonDualFrames)
+    canonDualFrames = _matchDevice(res, canonDualFrames)
     convolved = cwt(res, cWav, canonDualFrames)
     ax = axes(convolved)
-    @views xRecon = sum(convolved[:, i, i, ax[4:end]...] for i = 1:size(Ŵ, 2))
+    @views xRecon = sum(convolved[:, i, i, ax[4:end]...] for i = 1:size(Ŵ, 2))
     return xRecon
 end
 

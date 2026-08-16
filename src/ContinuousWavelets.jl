@@ -6,6 +6,7 @@ using AbstractFFTs
 using FFTW
 using LinearAlgebra
 using SpecialFunctions
+using Adapt: adapt
 
 import Wavelets.wavelet
 import Wavelets.WT.name, Wavelets.WT.class, Wavelets.WT.vanishingmoments

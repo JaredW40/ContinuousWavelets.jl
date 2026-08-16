@@ -93,7 +93,7 @@ round.(dropped,sigdigits=12)
 # output
 
 ┌ Warning: the canonical dual frame is off by 3.81e6, consider using one of the delta dual frames
-└ @ ContinuousWavelets ~/work/ContinuousWavelets.jl/ContinuousWavelets.jl/src/sanityChecks.jl:41
+└ @ ContinuousWavelets ~/work/ContinuousWavelets.jl/ContinuousWavelets.jl/src/sanityChecks.jl:42
 2047-element Vector{Float64}:
  0.0069417253841
  0.00694223965946
@@ -124,11 +124,11 @@ julia> res = circshift(cwt(exs, c), (0, 1, 0))
  2.64275e-6  0.0019801       4.37922e-6   3.47586e-6
 
 [:, :, 2] =
-  1.82235e-17  0.022676   0.00955726  …   3.2542e-18
- -1.73557e-18  0.0226846  0.0095044      -4.77282e-18
+  1.12812e-17  0.022676   0.00955726  …   4.33893e-18
+  1.73557e-18  0.0226846  0.0095044      -2.60336e-18
   ⋮                                   ⋱
-  1.53669e-18  0.0341524  0.0108042   …   6.05043e-19
-  7.9713e-18   0.0342169  0.0107732       7.14045e-19
+ -7.0861e-18   0.0341524  0.0108042   …  -2.69398e-18
+  3.12753e-18  0.0342169  0.0107732      -1.20514e-18
 
 [:, :, 3] =
  -4.25348e-7  0.00596895  …  4.4713e-8   1.86785e-8

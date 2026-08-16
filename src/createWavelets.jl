@@ -160,31 +160,22 @@ function father(c::CWT{<:WaveletBoundary,T}, ω, averagingType::Dirac, sWidth) w
     averaging[abs.(ω).<=upperBound] .= 1
     return averaging
 end
-#=
-function father(c::CWT{W,T,<:Morse},
-    ω,
-    averagingType::ContinuousWavelets.Father,
-    sWidth) where {W,T}
-    s = 2^(getMinScaling(c) + c.averagingLength - 1)
-    s0, ω_shift = locationShift(c, s, ω, sWidth)
-    averaging = adjust(c) .* mother(c, s0, sWidth, ω_shift)
-    return averaging
-end
-=# 
+
+# >1 → narrower in time (less dispersion); <1 → wider. π gives wavelet numbers close to Morlet. 
+const MORSE_FATHER_WIDTH_FACTOR = Ref(Float64(π))
 function father(c::CWT{W,T,<:Morse}, ω, averagingType::Father, sWidth) where {W,T}
     s = 2^(getMinScaling(c) + c.averagingLength)
     averaging = zeros(T, size(ω))
-    upperBound = getUpperBound(c, s)
+    upperBound = getUpperBound(c, s) * MORSE_FATHER_WIDTH_FACTOR[]
     for (i, w) in enumerate(ω)
-        if abs(w) <= upperBound * 0.8
-            averaging[i] = 1
-        elseif abs(w) <= upperBound
-            t = (abs(w) - 0.8*upperBound) / (0.2*upperBound)
-            averaging[i] = 0.5 * (1 + cos(π * t))
+        aw = abs(w)
+        if aw <= upperBound
+            averaging[i] = 1 - aw / upperBound
         end
     end
     return averaging
 end
+
 
 @doc """
     computeWavelets(n1::Integer, c::CWT{B,CT,W}; T = Float64, space = false) where {B<:WaveletBoundary,W,CT} -> daughters, ω

@@ -33,7 +33,8 @@ struct CWT{B,S,W<:ContWaveClass,N,isAn} <: ContWave{B,S}
     # wavelets as the scale changes. The conjugate
     # p-norm is preserved for the  signal. Should be
     # larger than 1
-    fsample::S
+    fsample::S # the sampling frequency of the signal. This is used to determine the frequencies of the wavelets.
+    J::Union{Nothing,Int} # Geometric number of scales to use. If nothing, then the number of scales is determined by the signal length and the wavelet parameters.
 end
 
 # aliased = ((:Q,:s,:scalingFactor), (:β,:decreasing), (:p, :normalization))
@@ -70,6 +71,7 @@ function CWT(wave::WC,
     β = 4;
     extraOctaves = 0,
     fsample=2000,
+    J = nothing,
     kwargs...) where {WC<:ContWaveClass,A<:Average,B<:WaveletBoundary,N<:Real}
     Q, β, p = processKeywordArgs(Q, β, p; kwargs...) # some names are redundant
     @assert β > 0
@@ -97,7 +99,8 @@ function CWT(wave::WC,
         averagingType,
         S(frameBound),
         S(p),
-        S(fsample))
+        S(fsample),
+        J)
 end
 
 
@@ -157,7 +160,7 @@ end
 function Base.show(io::IO, cf::CWT{W,S,WT,N}) where {W,S,WT,N}
     print(io, "CWT{$(cf.waveType), $(cf.averagingType), Q=$(cf.Q), β=$(cf.β)," *
         "aveLen=$(cf.averagingLength), frame=$(cf.frameBound), norm=$(cf.p), " *
-        "extraOctaves=$(cf.extraOctaves), fsample=$(cf.fsample)}")
+        "extraOctaves=$(cf.extraOctaves), fsample=$(cf.fsample)}, J=$(cf.J)}")
 end
 
 
@@ -176,6 +179,7 @@ function wavelet(wave::WC;
     p::N = Inf,
     β = 4,
     fsample=2000,
+    J = nothing, 
     kwargs...) where {WC<:ContWaveClass,A<:Average,T<:WaveletBoundary,N<:Real}
     return CWT(wave,
         Q,
@@ -186,5 +190,6 @@ function wavelet(wave::WC;
         p,
         β;
         fsample=fsample, 
+        J=J,
         kwargs...)
 end

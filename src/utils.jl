@@ -34,6 +34,17 @@ function getNWavelets(n1, c::CWT)
     nOctaves = getNOctaves(n1, c)
     n, nSpace = setn(n1, c)
     isAve = !(typeof(c.averagingType) <: NoAve)
+
+    if c.J !== nothing
+        J = c.J
+        Q = c.Q
+        j = 0:J
+        sRange = reverse(2.0 .^ (((J .- j) ./ Q)))
+        sWidth = ones(length(sRange))
+        totalWavelets = round(Int, length(sRange) + isAve)
+        return nOctaves, totalWavelets, sRange, sWidth
+    end
+
     if nOctaves ≤ c.averagingLength + getMinScaling(c) # there isn't enough space for anything but averaging.
         totalWavelets = isAve
         sRanges = [1.0]
@@ -55,29 +66,24 @@ getNOctaves(n1, c::CWT{W,T,M,N}) where {W,T,N,M} = log2(n1 >> 1 + 1) + c.extraOc
 # choose the number of octaves so the last mean, which is at s*σ[1]
 # is 3 standard devations away from the end
 function getNOctaves(n1, c::CWT{W,T,Morlet,N}) where {W,T,N}
-    # log2((n1 >> 1 + 1) / (c.σ[1] + 3)) + c.extraOctaves
-    log2((n1 >> 1 + 1) / (c.σ[1] + 3) * (c.fsample/2000)) + c.extraOctaves
+    log2((n1 >> 1 + 1) / (c.σ[1] + 3)) + c.extraOctaves
 end
 function getNOctaves(n1, c::CWT{W,T,<:Paul,N}) where {W,T,N}
-    # log2((n1 >> 1 + 1) / (2c.α + 5)) + c.extraOctaves
-    log2((n1 >> 1 + 1) / (2c.α + 5) * (c.fsample/2000)) + c.extraOctaves
+    log2((n1 >> 1 + 1) / (2c.α + 5)) + c.extraOctaves
 end
 # choose the number of octaves so the last mean is 5 standard deviations from the end
 function getNOctaves(n1, c::CWT{W,T,<:Dog,N}) where {W,T,N}
     μ = getMean(c)
     σ = getStd(c)
-    # log2(n1 >> 1 / (μ + 5σ)) + c.extraOctaves
-    log2(n1 >> 1 / (μ + 5σ) * (c.fsample/2000)) + c.extraOctaves
+    log2(n1 >> 1 / (μ + 5σ)) + c.extraOctaves
 end
 # choose the number of octaves so the smallest support is twice the qmf
 function getNOctaves(n1, c::CWT{W,T,<:ContOrtho,N}) where {W,T,N}
     log2(n1) - 2 - log2(length(qmf(c.waveType))) + c.extraOctaves
 end
 function getNOctaves(n1, c::CWT{W,T,Morse,N}) where {W,T,N}
-    # log2((n1 >> 1 + 1) / (morsefreq(c) + 1)) + c.extraOctaves
-    log2((n1 >> 1 + 1) / (morsefreq(c) + 1) * (c.fsample/2000)) + c.extraOctaves
+    log2((n1 >> 1 + 1) / (morsefreq(c) + 1)) + c.extraOctaves
 end
-# getNOctaves(n1,c::CWT{W,T, Morse, N}) where {W, T, N} = 4 + c.extraOctaves
 
 """
 As with the last octave, different wavelet families have different space decay rates, and in the case of symmetric or zero padding we don't want wavelets that bleed across the boundary from the center.
@@ -196,9 +202,7 @@ function locationShift(c::CWT{W,T,<:Dog,N}, s, ω, sWidth) where {W,T,N}
 end
 
 function locationShift(c::CWT{W,T,<:Morse,N}, s, ω, sWidth) where {W,T,N}
-    # s0 = c.waveType.cf * s * sWidth
     s0 = morsefreq(c) * s * sWidth
-    # ω_shift = ω .+ c.waveType.cf * s0
     ω_shift = ω .+ s0
     return (s0, ω_shift)
 end
@@ -215,7 +219,6 @@ function getMean(c::CWT{W,T,<:Morlet}, s = 1) where {W,T}
     return s * c.σ[1]
 end
 function getMean(c::CWT{W,T,<:Morse}, s = 1) where {W,T}
-    #return s*c.waveType.cf
     return s * morsefreq(c)
 end
 
@@ -254,19 +257,28 @@ end
 
 """
     getMeanFreq(Ŵ, fsample=2000) -> arrayOfFreqs
+    #getMeanFreq(Ŵ, ω, fsample, n1) -> arrayOfFreqs
 
-Calculate each of the mean frequencies of a collection of analytic or real wavelets `Ŵ`, using the power spectral density.
-The default sampling rate `fsample=2kHz`, so the maximum frequency is 1kHz.
+Calculate each of the mean frequencies of a collection of analytic or real wavelets `Ŵ`, using the power spectral density.
+`ω` is the raw (fsample-independent) frequency axis used to construct `Ŵ`, and `n1` is the original signal length —
+both are needed to correctly convert `Ŵ`'s row-index axis into real Hz for the given `fsample`.
 """
 function getMeanFreq(Ŵ::Array, fsample = 2000)
     eachNorm = [norm(w, 2)^2 for w in eachcol(Ŵ)]
     freqs = range(0, fsample / 2, length = size(Ŵ, 1))
     return map(ŵ -> sum(abs2.(ŵ) .* freqs), eachcol(Ŵ)) ./ eachNorm
-end
+end 
+#=
+function getMeanFreq(Ŵ::Array, ω, fsample, n1)
+    eachNorm = [norm(w, 2)^2 for w in eachcol(Ŵ)]
+    freqsHz = ω .* (fsample / 2) ./ (n1 >> 1 + 1)
+    return map(ŵ -> sum(abs2.(ŵ) .* freqsHz), eachcol(Ŵ)) ./ eachNorm
+end=#
 
 function getMeanFreq(n1, cw::CWT)
     Ŵ, ω = computeWavelets(n1, cw)
     getMeanFreq(Ŵ, cw.fsample)
+    #getMeanFreq(Ŵ, ω, cw.fsample, n1)
 end
 
 
@@ -326,10 +338,10 @@ Compute the weight given to each wavelet so that in the Fourier domain, the sum 
 wavelets is as close to 1 at every frequency below the peak of the last wavelet
 (that is `β' .*abs.(Ŵ[1:lastFreq,:]) ≈ ones(lastFreq)` in an ℓ^2 sense).
 """
-function computeDualWeights(Ŵ, wav)
-    @views lastReasonableFreq = computeLastFreq(Ŵ[:, end], wav)
-    Wdag = pinv(Ŵ[1:lastReasonableFreq, :])
-    β = conj.(Wdag * ones(size(Wdag, 2)))'
+function computeDualWeights(Ŵ, wav)
+    @views lastReasonableFreq = computeLastFreq(Ŵ[:, end], wav)
+    Wdag = pinv(Ŵ[1:lastReasonableFreq, :])
+    β = conj.(Wdag * ones(eltype(Wdag), size(Wdag, 2)))'
     return β
 end
 # function computeDualWeights(Ŵ, wav::CWT{W,T,<:ContOrtho,N}, n,naive=true) where {W,T,N}
@@ -427,12 +439,13 @@ function caveats(n1, c::CWT; coiTolerance = exp(-2))
     # Fourier equivalent frequencies
     Ŵ, ω = computeWavelets(n1, c)
     freqs = getMeanFreq(Ŵ, c.fsample)
+    #freqs = getMeanFreq(Ŵ, ω, c.fsample, n1)
     coi = directCoiComputation(n1, c; coiTolerance = coiTolerance)
     return sRange, freqs, coi
 end
 
-function caveats(Y::AbstractArray{T}, w::ContWaveClass) where {T<:Number}
-    caveats(size(Y, 1), CWT(w), J1 = J1)
+function caveats(Y::AbstractArray{T}, w::ContWaveClass; kwargs...) where {T<:Number}
+    caveats(size(Y, 1), CWT(w); kwargs...)
 end
 
 """
@@ -481,19 +494,19 @@ julia> Xspec = crossSpectrum(X, Y, c); size(Xspec)
 
 julia> Xspec[:,:,1,1]
 2053×29 Matrix{ComplexF64}:
- -4.14517e-5+5.06982e-21im  …  1.19877e-5-7.07214e-15im
- -4.14157e-5-3.15271e-20im     1.19896e-5-7.06562e-15im
-            ⋮               ⋱
- 0.000119144+1.44173e-20im     1.70054e-5+1.85809e-15im
- 0.000119178+3.753e-20im       1.69993e-5+1.85979e-15im
+  0.000124405-3.92911e-20im  …  2.45608e-5-6.01357e-15im
+  0.000124424+1.67907e-20im     2.45647e-5-6.00802e-15im
+             ⋮               ⋱
+ -0.000128995+1.4952e-20im      1.65638e-5-5.64595e-15im
+ -0.000129036+8.56547e-21im     1.65673e-5-5.65117e-15im
 
 julia> Xspec[:,:,1,2]
 2053×29 Matrix{ComplexF64}:
-  5.42995e-5-1.68994e-21im  …    2.649e-6-1.22869e-6im
-   5.4303e-5-6.79029e-21im      2.6479e-6-1.23329e-6im
+ 0.000173079-1.09846e-20im  …   6.18352e-6+7.87934e-6im
+ 0.000172983+3.55108e-20im      6.18669e-6+7.87862e-6im
             ⋮               ⋱
- -3.17457e-5-4.40894e-21im     4.71683e-6+3.72814e-6im
- -3.17719e-5-3.26772e-21im     4.71417e-6+3.7279e-6im
+   1.6972e-5-4.88944e-21im     -3.22811e-7+8.19937e-6im
+  1.70173e-5+1.28385e-20im     -3.24362e-7+8.20477e-6im
 
 ```
 """
@@ -522,19 +535,19 @@ julia> wCo = waveletCoherence(X, Y, c);
 
 julia> wCo[:,:,1,1]
 2053×29 Matrix{Float64}:
- 0.688432  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0
- 0.687333  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0
+ 0.972612  0.999992  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0
+ 0.97261   0.999992  1.0  1.0     1.0  1.0  1.0  1.0  1.0
  ⋮                             ⋱       ⋮
- 0.952408  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0
- 0.952626  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0
+ 0.927149  1.0       1.0  1.0     1.0  1.0  1.0  1.0  1.0
+ 0.92733   1.0       1.0  1.0     1.0  1.0  1.0  1.0  1.0
 
 julia> wCo[:,:,1,2]
 2053×29 Matrix{Float64}:
- 0.995092  0.984109  0.952974  …  0.128329  0.0335945
- 0.995082  0.984082  0.952852     0.128308  0.0336075
+ 0.832432  0.994307  0.97702   …  0.0086047   0.311523
+ 0.831971  0.994289  0.976954     0.00859959  0.311415
  ⋮                             ⋱
- 0.652498  0.994972  0.992932     0.19849   0.0902301
- 0.653111  0.994978  0.992951     0.198585  0.0902469
+ 0.162232  0.999238  0.831951     0.0169301   0.178859
+ 0.163151  0.999241  0.832198     0.0169412   0.179088
 
 ```
 """
@@ -560,7 +573,7 @@ function sharedCrossSpectrum(X, Y, c)
             c.frameBound,
             c.p,
             c.β;
-            fsample=c.fsample)
+            fsample=c.fsample, J=c.J)
     else
         cAve = c
     end
